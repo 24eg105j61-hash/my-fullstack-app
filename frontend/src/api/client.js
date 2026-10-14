@@ -1,10 +1,20 @@
 /**
- * API Client for Student Planner
- * In development: Proxied through Vite (/api) or configured via VITE_API_BASE_URL
- * In production: Served on same origin (/api)
+ * Normalize API base URL:
+ * - If VITE_API_BASE_URL is unset, defaults to '/api' (proxied by Vite in dev, or same-origin in unified production).
+ * - If VITE_API_BASE_URL is 'https://my-backend.onrender.com', appends '/api' -> 'https://my-backend.onrender.com/api'.
+ * - If VITE_API_BASE_URL is 'https://my-backend.onrender.com/api', keeps it as-is.
+ * - Strips any trailing slashes.
  */
+function getApiBaseUrl() {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!envUrl || typeof envUrl !== 'string' || envUrl.trim() === '') {
+    return '/api';
+  }
+  const clean = envUrl.trim().replace(/\/+$/, '');
+  return clean.endsWith('/api') ? clean : `${clean}/api`;
+}
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const BASE_URL = getApiBaseUrl();
 
 async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;

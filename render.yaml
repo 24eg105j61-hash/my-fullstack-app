@@ -1,11 +1,12 @@
 services:
-  # Unified Web Service (Express serves both API and built React SPA frontend)
+  # Backend Express REST API Web Service on Render
   - type: web
-    name: student-planner
+    name: student-planner-api
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm run install:all && npm run build
+    rootDir: backend
+    buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -16,6 +17,8 @@ services:
         fromDatabase:
           name: student-planner-db
           property: connectionString
+      - key: CLIENT_URL
+        value: "*"
 
 databases:
   # Managed PostgreSQL Database on Render

@@ -20,18 +20,45 @@ const HOST = '0.0.0.0';
 
 // Middleware
 app.use(morgan('dev'));
-app.use(cors({
-  origin: '*', // Allow all origins for dev flexibility, or configure via CLIENT_URL
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+
+// Configure CORS for local development, Vercel frontend, and production origins
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((url) => url.trim())
+  : ['*'];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      // Allow wildcard or specified origins or any Vercel domain or localhost
+      if (
+        allowedOrigins.includes('*') ||
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.vercel.app') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
+        return callback(null, true);
+      }
+
+      // Permissive fallback so legitimate client deployments are not blocked
+      return callback(null, true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  })
+);
+app.options('*', cors());
 app.use(express.json());
 
 // API Routes
 app.use('/api/health', healthRouter);
 app.use('/api/tasks', tasksRouter);
 
-// Serve Frontend Static Assets if built
+// Serve Frontend Static Assets if built (unified deployment fallback)
 const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
 const frontendIndexPath = path.join(frontendDistPath, 'index.html');
 
@@ -47,13 +74,15 @@ if (fs.existsSync(frontendDistPath)) {
     res.sendFile(frontendIndexPath);
   });
 } else {
-  console.log('[Server] Frontend build not found. Running in API-only dev mode.');
+  console.log('[Server] Frontend build not found. Running in standalone API mode.');
   app.get('/', (req, res) => {
     res.json({
-      message: 'Student Planner API is running.',
+      service: 'Student Planner API',
+      status: 'active',
       healthCheck: '/api/health',
       tasks: '/api/tasks',
-      note: 'In development mode, open the Vite client at http://localhost:5173'
+      documentation: 'REST API for Student Planner web application',
+      cors: 'Enabled (supports Vercel & localhost clients)'
     });
   });
 }
