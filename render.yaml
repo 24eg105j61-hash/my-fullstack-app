@@ -1,0 +1,27 @@
+services:
+  # Unified Web Service (Express serves both API and built React SPA frontend)
+  - type: web
+    name: student-planner
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm run install:all && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: student-planner-db
+          property: connectionString
+
+databases:
+  # Managed PostgreSQL Database on Render
+  - name: student-planner-db
+    databaseName: student_planner
+    user: student_admin
+    plan: free
+    region: oregon
+    postgresMajorVersion: "16"
